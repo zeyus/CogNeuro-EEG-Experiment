@@ -7,7 +7,7 @@ from psychopy.tools.filetools import fromFile, toFile
 import time
 import sys
 import numpy as np
-from triggers import setParallelData
+# from triggers import setParallelData
 
 from meeg import wavhelpers
 
@@ -55,6 +55,7 @@ stimListHz: List[int] = [50, 100, 250, 500, 5000, 15000]
 # 8 bit unsigned integer from 0 to 255
 # 0 = no trigger
 triggerMap: dict = {
+    'stop': 0,	
     'start': 1,
     'tone': 2,
     50: 11,
@@ -135,11 +136,13 @@ fixation.draw()
 win.flip()
 
 globalClock.reset()
-setParallelData(triggerMap['start'])
+if not DEBUG:
+    setParallelData(triggerMap['start'])
 for stim in trialList:
     # play the tone
     print("playing sound at {} Hz".format(stim['hz']))
-    setParallelData(triggerMap[stim['hz']])
+    if not DEBUG:
+        setParallelData(triggerMap[stim['hz']])
     playSound(stim['wavfile'])
     try:
         # wait for the duration of the tone
@@ -151,9 +154,13 @@ for stim in trialList:
     except IndexError:
         # ignore key timeout
         pass
+    except TypeError:
+        # ignore key timeout
+        pass
             
     print("done")
-    setParallelData(triggerMap[stim['hz']])
+    if not DEBUG:
+        setParallelData(triggerMap['stop'])
     trialClock.reset(silenceDuration_sec)
 
     while trialClock.getTime() > 0.:
