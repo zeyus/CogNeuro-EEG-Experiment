@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Set to False to use real EEG
+DEBUG: bool = True
+
 import random
 from typing import List
 from matplotlib.pyplot import setp
@@ -7,9 +10,12 @@ from psychopy.tools.filetools import fromFile, toFile
 import time
 import sys
 import numpy as np
-# from triggers import setParallelData
+if not DEBUG:
+    from triggers import setParallelData
 
 from meeg import wavhelpers
+
+
 
 targetKeys = dict(abort=['q', 'escape'])
 
@@ -57,13 +63,14 @@ stimListHz: List[int] = [50, 100, 250, 500, 5000, 15000]
 triggerMap: dict = {
     'stop': 0,	
     'start': 1,
-    'tone': 2,
     50: 11,
     100: 12,
     250: 13,
     500: 14,
-    5000: 15,
-    15000: 16
+    2500: 15,
+    5000: 16,
+    7500: 17,
+    15000: 18
 }
 
 dateStr: str = time.strftime("%b%d_%H%M", time.localtime())  # add the current time
@@ -119,7 +126,7 @@ message1 = visual.TextStim(win, pos=[0, +3], text='Ready...')
 message2 = visual.TextStim(win, pos=[0, -3], text='')
 message1.draw()
 win.flip()
-event.waitKeys(keyList=['space', 'enter', 'return'])
+event.waitKeys(keyList=['space', 'enter', 'return'] + targetKeys['abort'])
 
 message1.setText('Hit a key when ready.')
 message2.setText('Then close your eyes, relax, and listen to the sine waves crashing into your eardrums.')
@@ -141,9 +148,9 @@ if not DEBUG:
 for stim in trialList:
     # play the tone
     print("playing sound at {} Hz".format(stim['hz']))
+    playSound(stim['wavfile'])
     if not DEBUG:
         setParallelData(triggerMap[stim['hz']])
-    playSound(stim['wavfile'])
     try:
         # wait for the duration of the tone
         # and listen for "abort" keypress
