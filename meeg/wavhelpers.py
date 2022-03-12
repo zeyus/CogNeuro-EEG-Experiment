@@ -51,12 +51,12 @@ def wavlist_to_wavarr(wavlist):
     return np.array(wavlist)
 
 
-def loadWavFromDisk(Hz=[800, 1500]):
+def loadWavFromDisk(Hz=[800, 1500], dur=1.0):
     if type(Hz) is list:
-        leftChanStr = 'leftChan-%.0fHz.wav' % (round(Hz[0]))
-        rightChanStr = 'rightChan-%.0fHz.wav' % (round(Hz[1]))
+        leftChanStr = 'leftChan-%.0fHz-%0.2fs.wav' % (round(Hz[0]), dur)
+        rightChanStr = 'rightChan-%.0fHz-%0.2fs.wav' % (round(Hz[1]), dur)
     else:
-        leftChanStr = 'mono-%.0fHz.wav' % (round(Hz))
+        leftChanStr = 'mono-%.0fHz-%0.2fs.wav' % (round(Hz), dur)
     try:
         Fs_left, leftChan = wavread(leftChanStr)
     except IOError:
@@ -73,7 +73,7 @@ def load_stimuli(stimHz, audioSamplingRate, audStimDur_sec,
                  taperLenSec=0.010, isStereo=True):
     # Create Stimuli if not exist!
     try:
-        retval = loadWavFromDisk(Hz=stimHz)
+        retval = loadWavFromDisk(Hz=stimHz, dur=audStimDur_sec)
     except IOError:
         print("No WAV files found, creating stimuli...")
         audMask = np.ones(int(audStimDur_sec*audioSamplingRate))
@@ -101,8 +101,8 @@ def load_stimuli(stimHz, audioSamplingRate, audStimDur_sec,
                                   requirements=['C'])
             rightChan = np.require(np.column_stack((silence, sinewaveR)),
                                    requirements=['C'])
-            leftChanStr = 'leftChan-%.0fHz.wav' % (round(stimHz[0]))
-            rightChanStr = 'rightChan-%.0fHz.wav' % (round(stimHz[1]))
+            leftChanStr = 'leftChan-%.0fHz-%.2fs.wav' % (round(stimHz[0]), audStimDur_sec)
+            rightChanStr = 'rightChan-%.0fHz-%.2fs.wav' % (round(stimHz[1]), audStimDur_sec)
             retval = (leftChanStr, rightChanStr)
         else:
             if type(stimHz) is list:
@@ -112,7 +112,7 @@ def load_stimuli(stimHz, audioSamplingRate, audStimDur_sec,
                        np.linspace(0, audStimDur_sec, stimLenSamp))
             bothChan = np.require(np.column_stack((sinewaveB, sinewaveB)),
                                   requirements=['C'])
-            bothChanStr = 'mono-%.0fHz.wav' % (round(stimHz))
+            bothChanStr = 'mono-%.0fHz-%.2fs.wav' % (round(stimHz), audStimDur_sec)
             retval = bothChanStr
 
         # Scaling: maxOutSoundcard: 5.53 Vpp, maxInAttenuator: 3.13 Vpp

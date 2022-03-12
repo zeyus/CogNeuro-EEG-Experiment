@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-# Set to False to use real EEG
+# Set to False to use real EEG / parallel port
 DEBUG: bool = True
 
 import random
+from tkinter import E
+from turtle import st
 from typing import List
 from matplotlib.pyplot import setp
 from psychopy import core, visual, gui, data, event
@@ -19,23 +21,39 @@ from meeg import wavhelpers
 
 targetKeys = dict(abort=['q', 'escape'])
 
+# how many seconds we have available
+experimentTimeMax_sec: int = 600 / 2 # 5 minutes eyes open, 5 minutes eyes closed
+
 # Standard is usually 44.1 or 48 kHz
 audioSamplingRate: float = 44100.
 
-# how long should the tone be?
-audStimDur_sec: float = 15.
+# how long should the tone be
+requiredAudStimDur_sec: float = 15.
+
+# how many times we play the tone for requiredAudStimDur_sec
+nRepsRequired: int = 1
+
+# for the other trials, this is the minimum duration to play the tone
+audStimDurMin_sec: float = 1.0
+
+# for the other trials, this is the maximum duration to play the tone
+audStimDurMax_sec: float = 2.5
 
 # Fade in/out duration at beginning and end of tone
 audStimTaper_sec: float = 0.1
 
 # how long between each tone?
-silenceDuration_sec: float = 5.0
+silenceDurationMin_sec: float = 0.8
+silenceDurationMax_sec: float = 2.5
 
-# how many repeats of the same tone?
-nReps: int = 5
+
+
 
 # Set to False to use real EEG
 DEBUG: bool = True
+
+def calculateDuration(stimListExperiment: List[dict]) -> float:
+    return sum(stim['duration'] + stim['silence_duration'] for stim in stimListExperiment)
 
 def setupTrials(trialList: List[dict], nRep: int) -> List[dict]:
     allTrials: List[dict] = trialList * nRep
@@ -49,46 +67,82 @@ fullScr: bool = False
 
 expInfo: dict = {
     'subjID': 'test',
-    'startIntAbv': -30.0,
-    'startIntBlw': -100.0,
-    'relTargetVol': 50.,
-    'digPort': ['U3', 'LPT', 'Fake']
 }
-
-stimListHz: List[int] = [50, 100, 250, 500, 5000, 15000]
 
 # configure Parallel Port triggers for EEG
 # 8 bit unsigned integer from 0 to 255
 # 0 = no trigger
+# 'open' = eyes open condition
+# 'closed' = eyes closed condition
 triggerMap: dict = {
-    'stop': 0,	
-    'start': 1,
-    50: 11,
-    100: 12,
-    250: 13,
-    500: 14,
-    2500: 15,
-    5000: 16,
-    7500: 17,
-    15000: 18
+    50: {'open': 11, 'closed': 21},
+    100: {'open': 12, 'closed': 22},
+    250: {'open': 13, 'closed': 23},
+    500: {'open': 14, 'closed': 24},
+    2500: {'open': 15, 'closed': 25},
+    5000: {'open': 16, 'closed': 26},
+    7500: {'open': 17, 'closed': 27},
+    15000: {'open': 18, 'closed': 28},
 }
 
-dateStr: str = time.strftime("%b%d_%H%M", time.localtime())  # add the current time
+# list of all tones we want to play
+stimListHz: List[int] = triggerMap.keys()
+nStims: int = len(stimListHz)
+print("Number of unique frequencies: ", nStims)
+
+# extra triggers
+triggerMap['stop'] = 0
+triggerMap['start'] = 1
+triggerMap['open'] = 10
+triggerMap['closed'] = 20
+
+
+# just generate a bunch of lengths for the silence, we won't use 1000 but we can just read along the list
+silenceDurations_sec: List[float] = np.random.uniform(silenceDurationMin_sec, silenceDurationMax_sec, 1000).round(2).tolist()
+
+# get random silence durations
+silences: List[float] = silenceDurations_sec[-nStims:]
+
+# removed used random silence durations from list
+del silenceDurations_sec[-nStims:]
+
+# start off by adding the required durations for each tone to the list
+stimListExperiment: List[dict] = [{'stim': stimHz, 'duration': dur, 'silence_duration': sil} for stimHz, dur, sil in zip(stimListHz, [requiredAudStimDur_sec] * nStims, silences)]
+
+# now calculate used time
+expTimeUsed_sec: float = calculateDuration(stimListExperiment)
+
+
+# now we will add in as many additional sets of tones as we can to fill the time
+while expTimeUsed_sec < experimentTimeMax_sec:
+    toneDuration_sec: float = round(random.uniform(audStimDurMin_sec, audStimDurMax_sec), 2)
+    # get random silence durations
+    silences: List[float] = silenceDurations_sec[-nStims:]
+    # removed used random silence durations from list
+    del silenceDurations_sec[-nStims:]
+    stimSet: List[dict] = [{'stim': stimHz, 'duration': dur, 'silence_duration': sil} for stimHz, dur, sil in zip(stimListHz, [toneDuration_sec] * nStims, silences)]
+    stimSetDuration_sec: float = calculateDuration(stimSet)
+    if expTimeUsed_sec + stimSetDuration_sec > experimentTimeMax_sec:
+        break
+    stimListExperiment.extend(stimSet)
+    expTimeUsed_sec += stimSetDuration_sec
+
+print("Total experiment time: ", expTimeUsed_sec * 2)
 
 # prepare stims
 monoChanStrs: List[dict] = []
 
 print("preparing stimuli")
-for stimHz in stimListHz:  
+for i, stim in enumerate(stimListExperiment):
     # Save the stimulus as a wav file
     monoChanStr = \
-        wavhelpers.load_stimuli(stimHz, audioSamplingRate,
-                                audStimDur_sec, audStimTaper_sec, False)
-    # Keep track of the file names    
-    monoChanStrs.append({'hz': stimHz, 'wavfile': monoChanStr})
+        wavhelpers.load_stimuli(stim['stim'], audioSamplingRate,
+                                stim['duration'], audStimTaper_sec, False)
+    # Keep track of the file names
+    stimListExperiment[i]['filename'] = monoChanStr
+    
 print("stimuli prepared")
 
-trialList = setupTrials(monoChanStrs, nReps)
 
 # present a dialogue to change params
 dlg = gui.DlgFromDict(expInfo,
