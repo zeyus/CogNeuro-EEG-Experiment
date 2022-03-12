@@ -92,7 +92,7 @@ triggerMap['closed'] = 20
 
 
 # clean up any old stimuli
-oldStimuli = glob(DATA_DIR + '*.wav')
+oldStimuli = glob(STIM_DIR + '*.wav')
 print("Removing old stimuli...")
 for oldStim in oldStimuli:
     # we'll keep the 15 second ones
@@ -180,7 +180,7 @@ if not dlg.OK:
 # save the experiment structure to a log file
 # make a text file to save data
 fileName = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-dataFile = open(fileName + '.csv', 'w')
+dataFile = open(DATA_DIR + fileName + '.csv', 'w')
 
 # write header
 dataFile.write('subjID,stim (Hz),stim_fade,stim_duration,stim_silence_duration,eeg_tag,condition\n')
