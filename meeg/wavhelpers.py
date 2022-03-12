@@ -3,7 +3,7 @@
 """
 from __future__ import print_function
 import glob
-from math import ceil
+from math import ceil, floor
 import traceback
 import numpy as np
 from scipy.io.wavfile import write as wavwrite
@@ -11,6 +11,7 @@ from scipy.io.wavfile import read as wavread
 from os.path import join as opj
 from os.path import expanduser as ope
 
+DATA_DIR: str = './stims/'
 
 def list_wavs_in_dir(dirname):
     return glob.glob(opj(ope(dirname), '*.wav'))
@@ -53,10 +54,10 @@ def wavlist_to_wavarr(wavlist):
 
 def loadWavFromDisk(Hz=[800, 1500], dur=1.0):
     if type(Hz) is list:
-        leftChanStr = 'leftChan-%.0fHz-%0.2fs.wav' % (round(Hz[0]), dur)
-        rightChanStr = 'rightChan-%.0fHz-%0.2fs.wav' % (round(Hz[1]), dur)
+        leftChanStr = DATA_DIR + 'leftChan-%.0fHz-%0.2fs.wav' % (round(Hz[0]), dur)
+        rightChanStr = DATA_DIR + 'rightChan-%.0fHz-%0.2fs.wav' % (round(Hz[1]), dur)
     else:
-        leftChanStr = 'mono-%.0fHz-%0.2fs.wav' % (round(Hz), dur)
+        leftChanStr = DATA_DIR + 'mono-%.0fHz-%0.2fs.wav' % (round(Hz), dur)
     try:
         Fs_left, leftChan = wavread(leftChanStr)
     except IOError:
@@ -75,10 +76,10 @@ def load_stimuli(stimHz, audioSamplingRate, audStimDur_sec,
     try:
         retval = loadWavFromDisk(Hz=stimHz, dur=audStimDur_sec)
     except IOError:
-        print("No WAV files found, creating stimuli...")
+        print("No WAV file for stimuli (Hz: {}, duration: {}s) found! Creating one now...".format(stimHz, audStimDur_sec))
         audMask = np.ones(int(audStimDur_sec*audioSamplingRate))
-        taperLenSamp = ceil(taperLenSec*audioSamplingRate)
-        stimLenSamp = ceil(audStimDur_sec*audioSamplingRate)
+        taperLenSamp = floor(taperLenSec*audioSamplingRate)
+        stimLenSamp = floor(audStimDur_sec*audioSamplingRate)
         taperF = 1./(taperLenSec * 2.)
         taper = (np.sin(2 * np.pi * taperF *
                  np.linspace(-taperLenSec / 2., taperLenSec / 2.,
@@ -101,8 +102,8 @@ def load_stimuli(stimHz, audioSamplingRate, audStimDur_sec,
                                   requirements=['C'])
             rightChan = np.require(np.column_stack((silence, sinewaveR)),
                                    requirements=['C'])
-            leftChanStr = 'leftChan-%.0fHz-%.2fs.wav' % (round(stimHz[0]), audStimDur_sec)
-            rightChanStr = 'rightChan-%.0fHz-%.2fs.wav' % (round(stimHz[1]), audStimDur_sec)
+            leftChanStr = DATA_DIR + 'leftChan-%.0fHz-%.2fs.wav' % (round(stimHz[0]), audStimDur_sec)
+            rightChanStr = DATA_DIR + 'rightChan-%.0fHz-%.2fs.wav' % (round(stimHz[1]), audStimDur_sec)
             retval = (leftChanStr, rightChanStr)
         else:
             if type(stimHz) is list:
@@ -112,7 +113,7 @@ def load_stimuli(stimHz, audioSamplingRate, audStimDur_sec,
                        np.linspace(0, audStimDur_sec, stimLenSamp))
             bothChan = np.require(np.column_stack((sinewaveB, sinewaveB)),
                                   requirements=['C'])
-            bothChanStr = 'mono-%.0fHz-%.2fs.wav' % (round(stimHz), audStimDur_sec)
+            bothChanStr = DATA_DIR + 'mono-%.0fHz-%.2fs.wav' % (round(stimHz), audStimDur_sec)
             retval = bothChanStr
 
         # Scaling: maxOutSoundcard: 5.53 Vpp, maxInAttenuator: 3.13 Vpp
