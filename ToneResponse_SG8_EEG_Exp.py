@@ -9,10 +9,7 @@ from glob import glob
 import os
 import random
 from typing import List
-from matplotlib.pyplot import setp
-from psychopy import core, visual, gui, data, event
-from psychopy.tools.filetools import fromFile, toFile
-import time
+from psychopy import core, visual, gui, event
 import sys
 import numpy as np
 if not DEBUG:
@@ -55,7 +52,7 @@ def calculateDuration(stimListExperiment: List[dict]) -> float:
 # Psychopy window
 curMonitor: str = 'testMonitor'
 bckColour: str = '#303030'
-fullScr: bool = True
+fullScr: bool = False
 
 expInfo: dict = {
     'subjID': 'test',
