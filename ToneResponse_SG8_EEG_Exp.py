@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Set to False to use real EEG / parallel port
-DEBUG: bool = True
+DEBUG: bool = False
 DATA_DIR: str = './data/'
 STIM_DIR: str = './stims/'
 
@@ -8,8 +8,6 @@ import datetime
 from glob import glob
 import os
 import random
-from tkinter import E
-from turtle import st
 from typing import List
 from matplotlib.pyplot import setp
 from psychopy import core, visual, gui, data, event
@@ -57,7 +55,7 @@ def calculateDuration(stimListExperiment: List[dict]) -> float:
 # Psychopy window
 curMonitor: str = 'testMonitor'
 bckColour: str = '#303030'
-fullScr: bool = False
+fullScr: bool = True
 
 expInfo: dict = {
     'subjID': 'test',

@@ -13,5 +13,4 @@ dependencies:
   - pyo
   - pyparallel; platform_system != "Windows"
   - SoundFile; platform_system == "Windows"
-  - triggers
   - websocket_client
